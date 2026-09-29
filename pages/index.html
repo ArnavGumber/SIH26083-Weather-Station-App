@@ -1204,7 +1204,7 @@
                 </div><button class="close-btn" id="closeLoginModal" type="button" aria-label="Close login dialog"><i
                         data-lucide="x"></i></button>
             </div>
-            <form class="login-form" id="loginForm" action="http://localhost:3000/authLoginForUI" method="POST">
+            <form class="login-form" id="loginForm" action="./authLoginForUI" method="POST">
                 <label for="administratorId">Administrator ID
                     <input id="administratorId" name="administratorId" type="text" autocomplete="username" required>
                 </label>
@@ -1250,7 +1250,7 @@
         }
 
         async function getWBGT(t, rh, ws, sr) {
-            const response = await fetch(`http://localhost:3000/calculateWBGT/${t}-${rh}-${ws}-${sr}`);
+            const response = await fetch(`./calculateWBGT/${t}-${rh}-${ws}-${sr}`);
             if (!response.ok) throw new Error("WBGT request failed");
             return response.json();
         }
