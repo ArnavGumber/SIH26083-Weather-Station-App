@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#050914">
+    <title>SIH 26083 | Environmental Dashboard</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <style>
+        :root {
+            --bg: #050914;
+            --bg-soft: #091223;
+            --panel: rgba(12, 23, 43, .76);
+            --panel-solid: #0d1a30;
+            --line: rgba(146, 175, 225, .14);
+            --line-strong: rgba(146, 175, 225, .25);
+            --text: #eef4ff;
+            --muted: #8190aa;
+            --primary: #7c6cff;
+            --cyan: #43d8ec;
+            --green: #59d99a;
+            --orange: #f3a45d;
+            --yellow: #f6ce69;
+            --shadow: 0 20px 60px rgba(0, 0, 0, .28);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-width: 0;
+            background: var(--bg);
+            overflow-x: hidden;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+            display: flex;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 270px;
+            flex: 0 0 270px;
+            min-height: 100vh;
+            padding: 30px 20px 22px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            border-right: 1px solid var(--line);
+            background: rgba(4, 10, 23, .72);
+            backdrop-filter: blur(20px);
+            z-index: 5;
+        }
+
+        .sidebar.auth-hidden {
+            display: none;
+        }
+
+        .sidebar-close { display: none; }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 9px 28px;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            color: white;
+            background: linear-gradient(140deg, #8174ff, #4c6bd8);
+            box-shadow: 0 8px 26px rgba(99, 88, 255, .34);
+        }
+
+        .brand-mark svg {
+            width: 22px;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 14px;
+            letter-spacing: .11em;
+            font-weight: 800;
+        }
+
+        .brand-subtitle {
+            margin: 4px 0 0;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: .04em;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--line);
+            margin: 0 9px 25px;
+        }
+
+        .nav-label {
+            margin: 0 10px 10px;
+            color: #596982;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .sector-list {
+            display: grid;
+            gap: 8px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 0 2px 12px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(146, 175, 225, .3) transparent;
+        }
+
+        .sector-card {
+            width: 100%;
+            padding: 10px 11px;
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--risk-color, var(--cyan));
+            border-radius: 10px;
+            color: var(--text);
+            background: rgba(18, 32, 56, .57);
+            cursor: pointer;
+            text-align: left;
+            transition: background .2s ease, border-color .2s ease;
+        }
+
+        .sector-card:hover,
+        .sector-card:focus-visible,
+        .sector-card.expanded {
+            border-color: rgba(146, 175, 225, .35);
+            background: rgba(29, 48, 79, .8);
+            outline: none;
+        }
+
+        .sector-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .sector-card-title { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .04em; color: white; }
+        .sector-card-ward { margin: 3px 0 0; color: #dbeafe; font-size: 10px; font-weight: 700; }
+        .sector-card-sectors { margin: 3px 0 0; color: #8fa1bc; font-size: 9px; line-height: 1.35; }
+        .sector-card-risk { color: var(--risk-color); font-size: 9px; font-weight: 800; letter-spacing: .05em; }
+        .sector-card-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 9px; }
+        .sector-card-metric { color: #8fa1bc; font-size: 9px; }
+        .sector-card-metric strong { display: block; margin-top: 2px; color: #eef4ff; font-size: 11px; }
+        .sector-card-details { display: none; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+        .sector-card.expanded .sector-card-details { display: grid; }
+        .send-alert-button {
+            width: 100%;
+            margin-top: 9px;
+            padding: 6px 8px;
+            border: 1px solid rgba(228, 91, 112, .45);
+            border-radius: 7px;
+            color: #ffb4c0;
+            background: rgba(228, 91, 112, .14);
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .send-alert-button:disabled {
+            border-color: var(--line);
+            color: #596982;
+            background: rgba(146, 175, 225, .06);
+            cursor: not-allowed;
+        }
+
+        .send-alert-button:not(:disabled):hover { background: rgba(228, 91, 112, .28); }
+
+        .updated-card {
+            margin-top: auto;
+            padding: 15px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(18, 32, 56, .57);
+        }
+
+        .updated-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #c3cee2;
+            font-size: 12px;
+            font-weight: 650;
+        }
+
+        .updated-head svg {
+            width: 15px;
+            color: var(--cyan);
+        }
+
+        .live-mini {
+            margin-left: auto;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+        }
+
+        .updated-time {
+            margin: 10px 0 0 23px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .main {
+            width: min(100%, 1280px);
+            margin: 0 auto;
+            padding: 48px clamp(24px, 5vw, 74px) 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .mobile-menu {
+            display: none;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 44px;
+        }
+
+        .eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #7586aa;
+            font-size: 11px;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 22px;
+            height: 1px;
+            background: var(--primary);
+            box-shadow: 0 0 9px var(--primary);
+        }
+
+        h1 {
+            margin: 10px 0 7px;
+            font-size: clamp(30px, 3vw, 42px);
+            line-height: 1.08;
+            letter-spacing: -.035em;
+            font-weight: 720;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .login-btn {
+            padding: 9px 14px;
+            color: #eef4ff;
+            border: 1px solid rgba(124, 108, 255, .45);
+            border-radius: 10px;
+            background: rgba(124, 108, 255, .16);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            transition: .2s ease;
+        }
+
+        .login-btn:hover {
+            border-color: rgba(124, 108, 255, .75);
+            background: rgba(124, 108, 255, .28);
+        }
+
+        .live-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            color: #a5eec5;
+            border: 1px solid rgba(89, 217, 154, .22);
+            border-radius: 30px;
+            background: rgba(47, 145, 100, .1);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 11px var(--green);
+            animation: pulse 2.2s ease-in-out infinite;
+        }
+
+        .refresh-btn,
+        .close-btn {
+            display: grid;
+            place-items: center;
+            width: 37px;
+            height: 37px;
+            color: #98a9c6;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(20, 34, 59, .52);
+            cursor: pointer;
+            transition: .2s ease;
+        }
+
+        .refresh-btn:hover,
+        .close-btn:hover {
+            color: #fff;
+            border-color: var(--line-strong);
+            background: rgba(57, 74, 119, .6);
+        }
+
+        .refresh-btn svg {
+            width: 16px;
+        }
+
+        .refresh-btn.spinning svg {
+            animation: spin .55s ease;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: 13px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #b4c2da;
+        }
+
+        .section-heading span {
+            color: #647895;
+            font-size: 11px;
+        }
+
+        .sector-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: min(100%, 290px);
+            padding: 7px 10px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: rgba(20, 34, 59, .62);
+        }
+
+        .sector-search:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 108, 255, .14);
+        }
+
+        .sector-search svg {
+            width: 15px;
+            color: #8190aa;
+            flex: 0 0 auto;
+        }
+
+        .sector-search input {
+            width: 100%;
+            min-width: 0;
+            padding: 2px 0;
+            color: var(--text);
+            border: 0;
+            outline: 0;
+            background: transparent;
+            font-size: 12px;
+        }
+
+        .sector-search input::placeholder {
+            color: #8190aa;
+        }
+
+        .map-panel {
+            position: relative;
+            min-height: 540px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: #eaf1f6;
+            box-shadow: var(--shadow), inset 0 1px rgba(255, 255, 255, .75);
+        }
+
+        #chandigarhMap {
+            width: 100%;
+            height: 540px;
+            background: #eaf1f6;
+        }
+
+        .map-overlay {
+            position: absolute;
+            z-index: 300;
+            top: 18px;
+            left: 68px;
+            max-width: min(360px, calc(100% - 36px));
+            padding: 14px 16px;
+            border: 1px solid rgba(146, 175, 225, .22);
+            border-radius: 12px;
+            background: rgba(7, 17, 35, .88);
+            backdrop-filter: blur(12px);
+            pointer-events: none;
+        }
+
+        .map-overlay h3 { margin: 0; color: #f1f5ff; font-size: 14px; letter-spacing: .05em; }
+        .map-overlay p { margin: 5px 0 0; color: #8c9bb7; font-size: 11px; line-height: 1.5; }
+
+        .map-legend {
+            position: absolute;
+            z-index: 300;
+            right: 18px;
+            bottom: 18px;
+            display: grid;
+            gap: 7px;
+            padding: 12px;
+            border: 1px solid rgba(146, 175, 225, .22);
+            border-radius: 12px;
+            background: rgba(7, 17, 35, .9);
+            color: #aebbd2;
+            font-size: 10px;
+            pointer-events: none;
+        }
+
+        .legend-title { color: #eef4ff; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+        .legend-item { display: flex; align-items: center; gap: 7px; }
+        .legend-swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,.25); }
+        .leaflet-container { font: inherit; cursor: grab; }
+        .leaflet-container:active { cursor: grabbing; }
+        .leaflet-control-zoom { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 3px 12px rgba(25,42,70,.12); }
+        .leaflet-control-zoom a { color: #29344b; background: #fff; border-color: var(--line); }
+        .leaflet-control-zoom a:hover { color: var(--primary); background: #eff6ff; }
+        .leaflet-control-attribution { color: #64748b; background: #ffffffeF; }
+        .leaflet-control-attribution a { color: var(--primary); }
+        .leaflet-tooltip-pane { z-index: 1000 !important; }
+        .ward-tooltip { z-index: 1100 !important; color: var(--text); background: #fff; border: 1px solid var(--line-strong); box-shadow: 0 8px 24px rgba(25,42,70,.18); }
+        .ward-tooltip::before { border-right-color: var(--line-strong); }
+        .ward-popup { min-width: 190px; color: #f5f9ff; }
+        .ward-popup h3 { margin: 0 0 8px; color: #ffffff; font-size: 15px; }
+        .ward-popup .ward-sector { margin: -4px 0 3px; color: #74e5f2; font-size: 12px; font-weight: 700; }
+        .ward-popup .ward-description { margin: 0 0 9px; color: #9fb1ca; font-size: 10px; }
+        .ward-popup p { margin: 4px 0; color: #dbeafe; font-size: 12px; }
+        .ward-popup strong { color: #74e5f2; font-weight: 700; }
+        .ward-popup .popup-risk { font-weight: 800; }
+
+        @media (max-width: 780px) {
+            .map-panel, #chandigarhMap { min-height: 480px; height: 480px; }
+            .map-overlay { top: 12px; left: 58px; }
+            .map-legend { right: 12px; bottom: 12px; }
+        }
+
+        @media (max-width: 470px) {
+            .map-panel, #chandigarhMap { min-height: 440px; height: 440px; }
+            .map-overlay { max-width: calc(100% - 24px); }
+            .map-overlay p { display: none; }
+        }
+
+        .toast {
+            position: fixed;
+            right: 25px;
+            bottom: 25px;
+            z-index: 20;
+            padding: 12px 16px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            background: #13213a;
+            color: #dce7fa;
+            box-shadow: var(--shadow);
+            font-size: 12px;
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: .25s ease;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(1, 5, 14, .7);
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .22s ease;
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            width: min(100%, 440px);
+            padding: 24px;
+            border: 1px solid var(--line-strong);
+            border-radius: 18px;
+            background: #0b172b;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, .5);
+            transform: translateY(12px) scale(.98);
+            transition: transform .22s ease;
+        }
+
+        .modal-backdrop.open .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .modal h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .modal p {
+            margin: 6px 0 22px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .modal-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .modal-metric {
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(23, 39, 67, .5);
+        }
+
+        .modal-metric .metric-label {
+            margin-bottom: 7px;
+        }
+
+        .login-modal {
+            width: min(100%, 390px);
+        }
+
+        .login-form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .login-form label {
+            display: grid;
+            gap: 7px;
+            color: #b4c2da;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 11px 12px;
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            outline: none;
+            background: rgba(20, 34, 59, .72);
+        }
+
+        .login-form input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 108, 255, .14);
+        }
+
+        .login-submit {
+            margin-top: 4px;
+            padding: 11px 14px;
+            color: #fff;
+            border: 0;
+            border-radius: 9px;
+            background: var(--primary);
+            cursor: pointer;
+            font-weight: 750;
+        }
+
+        .login-submit:hover {
+            background: #9185ff;
+        }
+
+        @keyframes pulse {
+            50% {
+                opacity: .45;
+                box-shadow: 0 0 4px var(--green);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1080px) {
+            .sidebar {
+                width: 225px;
+                flex-basis: 225px;
+            }
+
+            .main {
+                padding-inline: 30px;
+            }
+
+        }
+
+        @media (max-width: 780px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+                width: 270px;
+                box-shadow: 20px 0 60px rgba(0, 0, 0, .35);
+            }
+
+            .sidebar-close {
+                position: absolute;
+                top: 17px;
+                right: 15px;
+                display: grid;
+                place-items: center;
+                width: 36px;
+                height: 36px;
+                padding: 0;
+                color: #dbe5f8;
+                border: 1px solid #ffffff30;
+                border-radius: 9px;
+                background: #ffffff12;
+                cursor: pointer;
+            }
+
+            .sidebar-close:hover { background: #ffffff24; }
+            .sidebar-close svg { width: 18px; height: 18px; }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main {
+                width: 100%;
+                padding: 25px 20px;
+            }
+
+            .mobile-menu {
+                display: grid;
+                place-items: center;
+                width: 38px;
+                height: 38px;
+                margin-right: 10px;
+                color: #dbe5f8;
+                border: 1px solid var(--line);
+                border-radius: 10px;
+                background: rgba(20, 34, 59, .52);
+                cursor: pointer;
+            }
+
+            .mobile-menu svg {
+                width: 18px;
+            }
+
+            .topbar {
+                margin-bottom: 34px;
+            }
+
+            .topbar-left {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                align-items: start;
+            }
+
+            .topbar-left .eyebrow,
+            .topbar-left h1,
+            .topbar-left .subtitle {
+                grid-column: 2;
+            }
+
+            .topbar-left .mobile-menu {
+                grid-row: 1 / span 3;
+            }
+
+        }
+
+        @media (max-width: 470px) {
+            .main {
+                padding-inline: 15px;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .top-actions {
+                gap: 6px;
+            }
+
+            .live-pill {
+                padding-inline: 10px;
+            }
+
+            .live-pill span:last-child {
+                display: none;
+            }
+
+            h1 {
+                font-size: 29px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+                line-height: 1.5;
+            }
+
+        }
+
+        .leaflet-control-attribution {
+            display: none;
+        }
+
+        /* Dashboard sample presentation layer. Existing map and data hooks stay unchanged. */
+        :root {
+            --bg: #f5f7fb;
+            --bg-soft: #eef3fa;
+            --panel: #ffffff;
+            --panel-solid: #ffffff;
+            --line: #e5e9f2;
+            --line-strong: #cbd5e1;
+            --text: #172033;
+            --muted: #718096;
+            --primary: #1769e8;
+            --cyan: #22a6d5;
+            --green: #22c55e;
+            --orange: #f59e0b;
+            --yellow: #facc15;
+            --shadow: 0 8px 28px rgba(25, 42, 70, .07);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .app-shell::before { display: none; }
+
+        .sidebar {
+            width: 245px;
+            flex-basis: 245px;
+            padding: 22px 15px;
+            background: linear-gradient(180deg, #061735, #0a2148);
+            color: #fff;
+            border-right: 0;
+            backdrop-filter: none;
+        }
+
+        .sidebar.auth-hidden { display: none; }
+        .brand { padding: 2px 8px 28px; }
+        .brand-mark { width: 39px; height: 39px; border-radius: 12px; background: #ffffff14; border: 1px solid #ffffff26; box-shadow: none; }
+        .brand-title { font-size: 17px; letter-spacing: 0; }
+        .brand-subtitle { color: #a9b9d3; }
+        .divider { background: #ffffff18; margin: 0 9px 20px; }
+        .nav-label { color: #8799b8; margin: 0 9px 8px; }
+        .sector-list { scrollbar-color: #33537e transparent; }
+        .sector-card { border: 1px solid #33537e; border-left: 3px solid var(--risk-color, var(--cyan)); border-radius: 9px; background: transparent; }
+        .sector-card:hover, .sector-card:focus-visible, .sector-card.expanded { border-color: #1769e8; background: #1769e8; }
+        .sector-card-ward { color: #dbeafe; }
+        .sector-card-sectors, .sector-card-metric { color: #aebbd0; }
+        .sector-card-metric strong { color: #fff; }
+        .updated-card { border: 1px solid #ffffff18; border-radius: 14px; background: #ffffff0d; }
+        .updated-head { color: #fff; }
+        .updated-time { color: #9db0cd; }
+
+        .main {
+            width: calc(100% - 245px);
+            max-width: none;
+            margin: 0;
+            padding: 24px 26px 34px;
+        }
+
+        .topbar { align-items: center; margin-bottom: 20px; }
+        .eyebrow { display: none; }
+        h1 { margin: 0; color: var(--text); font-size: 27px; letter-spacing: 0; }
+        .subtitle { margin-top: 4px; color: var(--muted); font-size: 12px; }
+        .top-actions { gap: 10px; }
+        .live-pill { padding: 9px 13px; color: #15803d; border-color: #bbf7d0; background: #f0fdf4; border-radius: 30px; }
+        .refresh-btn, .close-btn { color: #60708b; border-color: var(--line); border-radius: 9px; background: #fff; box-shadow: 0 2px 8px #1c335508; }
+        .login-btn { color: #1769e8; border-color: #bfdbfe; border-radius: 9px; background: #eff6ff; }
+
+        .section-heading { margin-bottom: 14px; }
+        .section-heading h2 { color: var(--text); font-size: 14px; letter-spacing: 0; text-transform: none; }
+        .section-heading span { color: var(--muted); }
+        .sector-search { border-color: var(--line); border-radius: 9px; background: #fff; box-shadow: 0 2px 8px #1c335508; }
+        .sector-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px #1769e81a; }
+        .sector-search input { color: var(--text); }
+
+        .map-panel {
+            min-height: 540px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: #fff;
+            box-shadow: var(--shadow);
+        }
+        #chandigarhMap { height: 540px; background: #eef4f8; }
+        .map-overlay { top: 14px; left: 50px; border: 1px solid var(--line); border-radius: 8px; background: #ffffffeF; box-shadow: 0 2px 8px rgba(20,35,55,.08); }
+        .map-overlay h3 { color: var(--text); }
+        .map-overlay p { color: #64748b; }
+        .map-legend { right: 12px; bottom: 12px; gap: 7px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: #ffffffeF; color: #64748b; box-shadow: 0 2px 8px rgba(20,35,55,.08); }
+        .legend-title { color: var(--text); }
+        .leaflet-control-zoom a { color: #29344b; background: #fff; border-color: var(--line); }
+        .leaflet-control-attribution { color: #64748b; background: #ffffffeF; }
+        .leaflet-control-attribution a { color: var(--primary); }
+        .ward-tooltip { color: var(--text); background: #fff; border-color: var(--line); }
+        .ward-tooltip::before { border-right-color: var(--line); }
+        .ward-tooltip .ward-popup { color: var(--text); }
+        .ward-tooltip .ward-popup h3 { color: var(--text); }
+        .ward-tooltip .ward-popup .ward-sector { color: #1769e8; }
+        .ward-tooltip .ward-popup .ward-description { color: #718096; }
+        .ward-tooltip .ward-popup p { color: #344054; }
+        .ward-tooltip .ward-popup strong { color: #1769e8; }
+
+        .modal-backdrop { background: #06173555; }
+        .modal { border-color: var(--line); border-radius: 13px; background: #fff; box-shadow: 0 18px 50px #1b2a3d25; }
+        .modal h2 { color: var(--text); }
+        .modal p, .modal-metric .metric-label { color: var(--muted); }
+        .modal-metric { border-color: var(--line); background: #f7faff; }
+        .login-form input { color: var(--text); border-color: var(--line); background: #fff; }
+        .login-submit { background: var(--primary); }
+
+        @media (max-width: 1100px) {
+            .sidebar { width: 205px; flex-basis: 205px; }
+            .main { width: calc(100% - 205px); }
+        }
+
+        @media (max-width: 780px) {
+            .sidebar { width: 270px; }
+            .main { width: 100%; padding: 17px; }
+            .topbar { align-items: flex-start; gap: 12px; flex-direction: column; }
+            .top-actions { flex-wrap: wrap; }
+            .map-panel, #chandigarhMap { min-height: 480px; height: 480px; }
+        }
+
+        .select {
+            padding: 10px 13px;
+            color: #29344b;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: #fff;
+            box-shadow: 0 2px 8px #1c335508;
+            cursor: pointer;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .summary-card, .rail-card {
+            position: relative;
+            padding: 16px 17px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: #fff;
+            box-shadow: var(--shadow);
+        }
+
+        .summary-card { min-height: 115px; }
+        .summary-card span, .rail-stat span { color: #5d6b82; font-size: 11px; font-weight: 650; }
+        .summary-card strong { display: block; margin-top: 13px; color: var(--text); font-size: 21px; }
+        .summary-card small { display: block; margin-top: 6px; color: #738098; font-size: 10px; }
+        .summary-card svg { position: absolute; top: 30px; right: 15px; width: 22px; height: 22px; color: var(--primary); }
+        .risk-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 13px; padding-right: 26px; }
+        .risk-count { min-width: 0; text-align: center; }
+        .risk-count strong { margin: 0; font-size: 18px; line-height: 1; }
+        .risk-count span { display: block; margin-top: 5px; font-size: 9px; font-weight: 750; text-transform: uppercase; }
+        .risk-count.extreme strong, .risk-count.extreme span { color: #EF4444; }
+        .risk-count.high strong, .risk-count.high span { color: #F59E0B; }
+        .risk-count.moderate strong, .risk-count.moderate span { color: #FACC15; }
+        .risk-count.low strong, .risk-count.low span { color: #65CF72; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 285px;
+            align-items: start;
+            gap: 14px;
+        }
+
+        .map-section { min-width: 0; }
+        .right-rail { display: grid; gap: 14px; }
+        .rail-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+        .rail-heading h2 { margin: 0; color: var(--text); font-size: 14px; }
+        .rail-heading svg { width: 18px; color: var(--primary); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px #22c55e1c; }
+        .rail-link { color: var(--primary); font-size: 10px; }
+        .feed-status { padding: 12px; border-radius: 9px; background: #eff6ff; }
+        .feed-status strong { display: block; color: #1769e8; font-size: 12px; }
+        .feed-status span { display: block; margin-top: 4px; color: #60708b; font-size: 10px; line-height: 1.4; }
+        .rail-stat { display: flex; justify-content: space-between; gap: 12px; padding-top: 13px; margin-top: 13px; border-top: 1px solid var(--line); }
+        .rail-stat strong { color: var(--text); font-size: 13px; }
+        .priority-list { display: grid; gap: 8px; }
+        .priority-list p { margin: 0; color: var(--muted); font-size: 10px; }
+        .priority-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fafbfd; }
+        .priority-item span { color: var(--text); font-size: 10px; font-weight: 700; }
+        .priority-item b { font-size: 9px; }
+        .guidance-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+        .rail-action { display: inline-flex; align-items: center; gap: 7px; margin-top: 13px; padding: 0; color: var(--primary); border: 0; background: transparent; cursor: pointer; font-size: 10px; font-weight: 750; }
+        .rail-action svg { width: 13px; }
+        .bottom-analytics { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 14px; margin-top: 14px; }
+        .distribution-card, .alert-history-card { min-width: 0; }
+        .distribution-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 17px 11px; }
+        .distribution-head h2 { margin: 0; color: var(--text); font-size: 17px; }
+        .distribution-head span { color: var(--muted); font-size: 12px; }
+        .distribution-body { display: flex; align-items: center; gap: 26px; padding: 8px 17px 19px; }
+        .risk-donut { width: 142px; height: 142px; flex: 0 0 142px; position: relative; border-radius: 50%; background: conic-gradient(#65CF72 0deg 90deg, #FACC15 90deg 180deg, #F59E0B 180deg 270deg, #EF4444 270deg 360deg); }
+        .risk-donut::after { content: attr(data-total); position: absolute; inset: 27px; display: grid; place-items: center; border-radius: 50%; color: var(--text); background: #fff; font-size: 26px; font-weight: 800; }
+        .distribution-legend { display: grid; gap: 11px; width: min(100%, 260px); font-size: 12px; }
+        .distribution-row { display: flex; align-items: center; gap: 8px; color: #344054; }
+        .distribution-row i { width: 11px; height: 11px; flex: 0 0 11px; border-radius: 2px; }
+        .distribution-row span { font-size: 16px; }
+        .distribution-row strong { margin-left: auto; color: var(--text); font-size: 16px; }
+        .alert-history-list { display: grid; }
+        .alert-history-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: start; gap: 9px; padding: 12px 17px; border-top: 1px solid var(--line); }
+        .alert-history-item:first-child { border-top: 0; }
+        .alert-severity { width: 9px; height: 9px; margin-top: 3px; border-radius: 50%; background: var(--alert-color); box-shadow: 0 0 0 4px color-mix(in srgb, var(--alert-color) 15%, transparent); }
+        .alert-history-item strong { display: block; overflow: hidden; color: var(--text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+        .alert-history-item p { margin: 4px 0 0; overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+        .alert-history-time { color: #8792a6; font-size: 9px; white-space: nowrap; }
+        .alert-history-more { display: block; width: calc(100% - 34px); margin: 8px 17px 15px; padding: 9px; border: 1px solid #bfdbfe; border-radius: 8px; color: var(--primary); background: #eff6ff; cursor: pointer; font-size: 10px; font-weight: 750; }
+        .alert-history-more:hover { background: #dbeafe; }
+        .alert-history-empty { margin: 0; padding: 15px 17px; color: var(--muted); font-size: 10px; }
+        .alert-history-item.extra { display: none; }
+        .alert-history-list.expanded .alert-history-item.extra { display: grid; }
+        @media (max-width: 780px) { .bottom-analytics { grid-template-columns: 1fr; } }
+        @media (max-width: 500px) {
+            .distribution-body { gap: 18px; padding-inline: 14px; }
+            .risk-donut { width: 122px; height: 122px; flex-basis: 122px; }
+            .risk-donut::after { inset: 23px; }
+        }
+
+        .ward-panel {
+            position: fixed;
+            top: 0;
+            right: -430px;
+            z-index: 30;
+            width: min(410px, 100vw);
+            height: 100vh;
+            overflow-y: auto;
+            color: var(--text);
+            background: #fff;
+            box-shadow: -12px 0 35px #1b2a3d25;
+            transition: right .25s ease;
+        }
+
+        .ward-panel.open { right: 0; }
+        .ward-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px; border-bottom: 1px solid var(--line); }
+        .ward-panel-title { margin: 0; color: var(--text); font-size: 19px; font-weight: 800; }
+        .ward-panel-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+        .ward-panel-close { width: 31px; height: 31px; padding: 0; border: 0; border-radius: 50%; color: #60708b; background: #f2f4f8; cursor: pointer; font-size: 20px; line-height: 1; }
+        .ward-panel-body { padding: 20px; }
+        .ward-risk-box { padding: 14px; border-radius: 10px; background: #fff0f1; color: #EF4444; }
+        .ward-risk-label { font-size: 10px; font-weight: 700; }
+        .ward-risk-value { display: block; margin-top: 2px; font-size: 26px; }
+        .ward-risk-score { margin-top: 4px; font-size: 10px; }
+        .ward-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+        .ward-detail-grid.secondary { display: none; }
+        .ward-detail-grid.secondary.open { display: grid; }
+        .ward-see-more { display: inline-flex; align-items: center; justify-content: center; width: 100%; margin: 2px 0 4px; padding: 10px; border: 1px solid #bfdbfe; border-radius: 9px; color: #1769e8; background: #eff6ff; cursor: pointer; font-size: 11px; font-weight: 750; }
+        .ward-see-more:hover { background: #dbeafe; }
+        .ward-detail { padding: 11px; border: 1px solid var(--line); border-radius: 9px; }
+        .ward-detail label { display: block; color: #7b879b; font-size: 9px; }
+        .ward-detail strong { display: block; margin-top: 5px; color: var(--text); font-size: 14px; }
+        .ward-panel-section h3 { margin: 20px 0 9px; color: var(--text); font-size: 13px; }
+        .ward-reason { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #edf0f4; color: #344054; font-size: 10px; }
+        .ward-reason strong { color: #ef4444; }
+        .ward-action { margin: 7px 0; padding: 10px; border: 1px solid #e4edfb; border-radius: 9px; color: #344054; background: #f7faff; font-size: 10px; }
+        .ward-action strong { display: block; margin-bottom: 3px; color: var(--text); font-size: 11px; }
+        .ward-panel-backdrop { position: fixed; inset: 0; z-index: 25; display: none; background: #06173555; }
+        .ward-panel-backdrop.open { display: block; }
+
+        @media (max-width: 1100px) {
+            .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .dashboard-grid { grid-template-columns: minmax(0, 1fr) 250px; }
+        }
+
+        @media (max-width: 780px) {
+            .summary-grid, .dashboard-grid { grid-template-columns: 1fr; }
+            .right-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .guidance-card { grid-column: 1 / -1; }
+            .map-panel, #chandigarhMap { min-height: 440px; height: 440px; }
+        }
+
+        @media (max-width: 500px) {
+            .summary-grid, .right-rail { grid-template-columns: 1fr; }
+            .top-actions { width: 100%; }
+            .top-actions .select { flex: 1; }
+            .map-overlay { left: 58px; max-width: calc(100% - 75px); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar" aria-label="Sector monitoring">
+            <button class="sidebar-close" id="closeMenuButton" type="button" aria-label="Close navigation"><i data-lucide="x"></i></button>
+            <div class="brand">
+                <div class="brand-mark"><i data-lucide="cloud-sun"></i></div>
+                <div>
+                    <p class="brand-title">SIH 26083</p>
+                    <p class="brand-subtitle">Environmental intelligence</p>
+                </div>
+            </div>
+            <div class="divider"></div>
+                <p class="nav-label">Sector monitoring</p>
+                <div class="sector-list" id="sectorList" aria-label="Chandigarh sectors"></div>
+            <div class="updated-card">
+                <div class="updated-head"><i data-lucide="clock-3"></i><span>Last Updated</span><span
+                        class="live-mini"></span></div>
+                <div class="updated-time" id="updatedTime">--</div>
+            </div>
+        </aside>
+        <main class="main">
+            <header class="topbar">
+                <div class="topbar-left"><button class="mobile-menu" id="menuButton" aria-label="Open navigation"
+                        aria-controls="sidebar" aria-expanded="false"><i data-lucide="menu"></i></button>
+                    <div><h1>City Overview</h1>
+                    <p class="subtitle">Heat-health situation across Chandigarh wards</p></div>
+                </div>
+                <div class="top-actions">
+                    <button class="select" type="button">⌖ Chandigarh</button>
+                    <div class="live-pill"><span class="live-dot"></span><span>Live data</span></div><button
+                        class="refresh-btn" id="refreshButton" aria-label="Refresh last updated time" title="Refresh"><i
+                            data-lucide="refresh-cw"></i></button><button class="login-btn" id="loginButton"
+                        type="button" aria-haspopup="dialog" aria-controls="loginModalBackdrop">Login</button>
+                </div>
+            </header>
+            <section class="summary-grid" aria-label="City summary">
+                <article class="summary-card"><span>Overall Health Risk</span><strong id="summaryOverallRisk">--</strong><small id="summaryRiskMeta">Based on the majority of wards</small><i data-lucide="heart-pulse"></i></article>
+                <article class="summary-card"><span>Sectors at a Glance</span><div class="risk-counts" aria-label="Ward risk counts"><div class="risk-count extreme"><strong id="summaryExtremeCount">--</strong><span>Extreme</span></div><div class="risk-count high"><strong id="summaryHighCount">--</strong><span>High</span></div><div class="risk-count moderate"><strong id="summaryModerateCount">--</strong><span>Moderate</span></div><div class="risk-count low"><strong id="summaryLowCount">--</strong><span>Low</span></div></div><i data-lucide="layout-grid"></i></article>
+                <article class="summary-card"><span>Population at Risk</span><strong id="summaryPopulationRisk">--</strong><i data-lucide="users"></i></article>
+                <article class="summary-card"><span>Last updated</span><strong id="summaryUpdated">--</strong><small>Automatic refresh every 3 seconds</small><i data-lucide="clock-3"></i></article>
+            </section>
+            <div class="dashboard-grid">
+            <section class="map-section" aria-labelledby="regions-heading">
+                <div class="section-heading">
+                    <h2 id="regions-heading">Chandigarh ward heat map</h2>
+                    <form class="sector-search" id="sectorSearchForm" role="search">
+                        <i data-lucide="search"></i>
+                        <input id="sectorSearchInput" type="search" autocomplete="off" placeholder="Search your sector or ward..." aria-label="Search your sector">
+                    </form>
+                    <span id="stationCount">Loading ward data</span>
+                </div>
+                <div class="map-panel">
+                    <div id="chandigarhMap" aria-label="Interactive Chandigarh ward risk map"></div>
+                    <div class="map-overlay">
+                        <h3>CHANDIGARH CITY</h3>
+                        <p>Hover over a ward to inspect live environmental readings and heat risk.</p>
+                    </div>
+                    <div class="map-legend" aria-label="Heat risk legend">
+                        <div class="legend-title">Heat risk</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#65CF72"></span>LOW</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#FACC15"></span>MODERATE</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#F59E0B"></span>HIGH</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#EF4444"></span>EXTREME</div>
+                    </div>
+                </div>
+            </section>
+            <aside class="right-rail" aria-label="Monitoring details">
+                <section class="rail-card">
+                    <div class="rail-heading"><h2>Live feed</h2><span class="status-dot"></span></div>
+                    <div class="feed-status"><strong id="railFeedStatus">Connecting</strong><span id="railFeedText">Waiting for station readings</span></div>
+                    <div class="rail-stat"><span>Stations reporting</span><strong id="railStations">--</strong></div>
+                    <div class="rail-stat"><span>Map regions</span><strong id="railRegions">--</strong></div>
+                </section>
+                <section class="rail-card">
+                    <div class="rail-heading"><h2>Priority areas</h2><span class="rail-link">Live</span></div>
+                    <div id="priorityAreas" class="priority-list"><p>Loading ward risk data...</p></div>
+                </section>
+                <section class="rail-card guidance-card">
+                    <div class="rail-heading"><h2>Heat safety</h2><i data-lucide="shield-check"></i></div>
+                    <p>Monitor high-risk wards closely and prioritize hydration, shade, and cooling access during peak heat.</p>
+                    <button class="rail-action" type="button" onclick="document.querySelector('#sectorSearchInput')?.focus()">Find a sector <i data-lucide="arrow-right"></i></button>
+                </section>
+            </aside>
+            </div>
+            <div class="bottom-analytics">
+                <section class="summary-card distribution-card" aria-labelledby="distribution-title">
+                    <div class="distribution-head"><h2 id="distribution-title">Risk Distribution</h2><span id="distributionTotal">Chandigarh wards</span></div>
+                    <div class="distribution-body">
+                        <div class="risk-donut" id="riskDonut" data-total="--" aria-label="Risk distribution chart"></div>
+                        <div class="distribution-legend" id="distributionLegend"></div>
+                    </div>
+                </section>
+                <section class="summary-card alert-history-card" aria-labelledby="alert-history-title">
+                    <div class="distribution-head"><h2 id="alert-history-title">Alert History</h2><span>Recent risk alerts</span></div>
+                    <div class="alert-history-list" id="alertHistoryList"><p class="alert-history-empty">Loading alert history...</p></div>
+                    <button class="alert-history-more" id="alertHistoryMore" type="button" aria-expanded="false">See more</button>
+                </section>
+            </div>
+        </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="ward-panel-backdrop" id="wardPanelBackdrop" onclick="closeWardPanel()"></div>
+    <aside class="ward-panel" id="wardPanel" aria-label="Sector details" aria-hidden="true">
+        <div class="ward-panel-head">
+            <div><h2 class="ward-panel-title">Sector <span id="panelSector">--</span></h2><p class="ward-panel-subtitle" id="panelWard">Ward details</p></div>
+            <button class="ward-panel-close" type="button" onclick="closeWardPanel()" aria-label="Close sector details">×</button>
+        </div>
+        <div class="ward-panel-body">
+            <div class="ward-risk-box"><div class="ward-risk-label">CURRENT RISK</div><strong class="ward-risk-value" id="panelRisk">--</strong><div class="ward-risk-score">Risk score <b id="panelScore">--</b></div></div>
+            <div class="ward-detail-grid">
+                <div class="ward-detail"><label>Temperature</label><strong id="panelTemperature">--</strong></div>
+                <div class="ward-detail"><label>Humidity</label><strong id="panelHumidity">--</strong></div>
+                <div class="ward-detail"><label>Wind speed</label><strong id="panelWind">--</strong></div>
+                <div class="ward-detail"><label>Stress category</label><strong id="panelStress">--</strong></div>
+            </div>
+            <button class="ward-see-more" id="wardSeeMore" type="button" aria-expanded="false">See more</button>
+            <div class="ward-detail-grid secondary" id="wardSecondaryDetails" aria-hidden="true">
+                <div class="ward-detail"><label>Heat index</label><strong id="panelHeatIndex">--</strong></div>
+                <div class="ward-detail"><label>WBGT</label><strong id="panelWbgt">--</strong></div>
+                <div class="ward-detail"><label>UTCI</label><strong id="panelUtci">--</strong></div>
+                <div class="ward-detail"><label>MRT</label><strong id="panelMrt">--</strong></div>
+                <div class="ward-detail"><label>Solar radiation</label><strong id="panelSolar">--</strong></div>
+            </div>
+            <section class="ward-panel-section"><h3>Why is this sector at this risk?</h3><div id="panelReasons"></div></section>
+            <section class="ward-panel-section"><h3>What should be done?</h3><div id="panelActions"></div></section>
+        </div>
+    </aside>
+    <div class="modal-backdrop" id="modalBackdrop" role="presentation">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div class="modal-top">
+                <div>
+                    <h2 id="modalTitle">Region details</h2>
+                    <p id="modalSubtitle">Environmental measurements</p>
+                </div><button class="close-btn" id="closeModal" aria-label="Close details"><i
+                        data-lucide="x"></i></button>
+            </div>
+            <div class="modal-metrics" id="modalMetrics"></div>
+        </section>
+    </div>
+    <div class="modal-backdrop" id="loginModalBackdrop" role="presentation">
+        <section class="modal login-modal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+            <div class="modal-top">
+                <div>
+                    <h2 id="loginModalTitle">Administrator Login</h2>
+                </div><button class="close-btn" id="closeLoginModal" type="button" aria-label="Close login dialog"><i
+                        data-lucide="x"></i></button>
+            </div>
+            <form class="login-form" id="loginForm" action="http://localhost:3000/authLoginForUI" method="POST">
+                <label for="administratorId">Administrator ID
+                    <input id="administratorId" name="administratorId" type="text" autocomplete="username" required>
+                </label>
+                <label for="administratorPassword">Administrator Password
+                    <input id="administratorPassword" name="administratorPassword" type="password" autocomplete="current-password" required>
+                </label>
+                <button class="login-submit" type="submit">Login</button>
+            </form>
+        </section>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        let regions = [];
+        let mapInstance;
+        let wardLayer;
+        let wardFeatures = [];
+        const updatedTime = document.querySelector("#updatedTime");
+        const stationCount = document.querySelector("#stationCount");
+        const sectorList = document.querySelector("#sectorList");
+        const toast = document.querySelector("#toast");
+        const riskColors = { LOW: "#65CF72", MODERATE: "#FACC15", HIGH: "#F59E0B", EXTREME: "#EF4444" };
+        const fallbackReadings = [
+            { temperature: 32.8, humidity: 55, windSpeed: 2.8, solarRadiation: 620, wbgt: 27.8 },
+            { temperature: 35.1, humidity: 64, windSpeed: 1.9, solarRadiation: 740, wbgt: 31.4 },
+            { temperature: 37.2, humidity: 68, windSpeed: 1.4, solarRadiation: 810, wbgt: 34.8 },
+            { temperature: 39.4, humidity: 72, windSpeed: 1.1, solarRadiation: 860, wbgt: 38.2 }
+        ];
+
+        function setUpdatedTime() {
+            const formatted = new Intl.DateTimeFormat("en-US", { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());
+            updatedTime.textContent = formatted;
+            const summaryUpdated = document.querySelector("#summaryUpdated");
+            if (summaryUpdated) summaryUpdated.textContent = formatted.split(", ").pop();
+        }
+        function showToast(message) { toast.textContent = message; toast.classList.add("show"); clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => toast.classList.remove("show"), 2600); }
+        function escapeHtml(value) { return String(value ?? "—").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character])); }
+
+        function getHI(tempInCelsius, rh) {
+            const t = tempInCelsius * 9 / 5 + 32;
+            const hi = parseFloat(((-42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh - 0.00683783 * t * t - 0.05481717 * rh * rh + 0.00122874 * t * t * rh + 0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh - 32) * 5 / 9).toFixed(2));
+            const risk = hi < 32 ? "LOW" : hi < 40 ? "MODERATE" : hi < 52 ? "HIGH" : "EXTREME";
+            return { heatIndex: hi, risk };
+        }
+
+        async function getWBGT(t, rh, ws, sr) {
+            const response = await fetch(`http://localhost:3000/calculateWBGT/${t}-${rh}-${ws}-${sr}`);
+            if (!response.ok) throw new Error("WBGT request failed");
+            return response.json();
+        }
+
+        function wardDataForFeature(feature, index) {
+            const wardNumber = String(feature.properties?.Ward_name ?? "").padStart(2, "0");
+            const matchedRegion = regions.find(region => String(region.name ?? "").match(new RegExp(`WARD-0?${wardNumber}$`, "i")));
+            return matchedRegion || (regions.length ? regions[index % regions.length] : fallbackReadings[index % fallbackReadings.length]);
+        }
+
+        function readingForWard(feature, index) {
+            const source = wardDataForFeature(feature, index);
+            return { ...source, ...getHI(Number(source.temperature), Number(source.humidity)) };
+        }
+
+        function wardCardMarkup(group, index) {
+            const feature = group.features[0];
+            const properties = feature.properties || {};
+            const reading = readingForWard(feature, index);
+            const ward = properties.Ward_name ?? "—";
+            const sectors = group.features
+                .map(item => String(item.properties?.Sector_nam ?? "—"))
+                .sort((first, second) => first.localeCompare(second, undefined, { numeric: true, sensitivity: "base" }))
+                .map(sector => `Sector ${escapeHtml(sector)}`)
+                .join(", ");
+            const riskColor = riskColors[reading.risk] || "#8190aa";
+            const alertEnabled = reading.risk === "HIGH" || reading.risk === "EXTREME";
+            return `<div class="sector-card" data-ward-index="${index}" style="--risk-color:${riskColor}" aria-expanded="false" role="button" tabindex="0"><div class="sector-card-head"><div><h3 class="sector-card-title">Ward ${escapeHtml(ward)}</h3><p class="sector-card-sectors">${sectors}</p></div><span class="sector-card-risk">${escapeHtml(reading.risk)}</span></div><div class="sector-card-summary"><div class="sector-card-metric">Temperature<strong>${escapeHtml(reading.temperature)} °C</strong></div><div class="sector-card-metric">Humidity<strong>${escapeHtml(reading.humidity)}%</strong></div></div><div class="sector-card-details"><div class="sector-card-metric">Solar radiation<strong>${escapeHtml(reading.solarRadiation)} W/m²</strong></div><div class="sector-card-metric">Wind speed<strong>${escapeHtml(reading.windSpeed)} m/s</strong></div><div class="sector-card-metric">Heat index<strong>${escapeHtml(reading.heatIndex)} °C</strong></div><div class="sector-card-metric">WBGT<strong>${escapeHtml(reading.wbgt)} °C</strong></div></div><button class="send-alert-button" data-alert-ward-index="${index}" data-alert-risk="${escapeHtml(reading.risk)}" ${alertEnabled ? "" : "disabled"}>Send alert</button></div>`;
+        }
+
+        function renderSectorCards() {
+            if (!wardFeatures.length) {
+                sectorList.innerHTML = '<p class="updated-time">Loading sectors...</p>';
+                return;
+            }
+            const wardGroups = [...wardFeatures.reduce((groups, feature) => {
+                const ward = String(feature.properties?.Ward_name ?? "—");
+                if (!groups.has(ward)) groups.set(ward, []);
+                groups.get(ward).push(feature);
+                return groups;
+            }, new Map())]
+                .sort(([firstWard], [secondWard]) => firstWard.localeCompare(secondWard, undefined, { numeric: true, sensitivity: "base" }))
+                .map(([ward, features]) => ({ ward, features }));
+            sectorList.innerHTML = wardGroups.map((group, index) => wardCardMarkup(group, index)).join("");
+            renderPriorityAreas(wardGroups);
+        }
+
+        function renderPriorityAreas(wardGroups) {
+            const priorityAreas = document.querySelector("#priorityAreas");
+            if (!priorityAreas) return;
+            const priority = wardGroups.map((group, index) => ({ group, reading: readingForWard(group.features[0], index) }))
+                .filter(item => item.reading.risk === "HIGH" || item.reading.risk === "EXTREME")
+                .slice(0, 4);
+            priorityAreas.innerHTML = priority.length ? priority.map(item => {
+                const ward = item.group.features[0].properties?.Ward_name ?? "—";
+                const color = riskColors[item.reading.risk] || "#718096";
+                return `<div class="priority-item"><span>Ward ${escapeHtml(ward)}</span><b style="color:${color}">${escapeHtml(item.reading.risk)}</b></div>`;
+            }).join("") : '<p>No high-risk wards in the current reading.</p>';
+        }
+
+        function updateRiskSummary() {
+            const wardGroups = [...wardFeatures.reduce((groups, feature) => {
+                const ward = String(feature.properties?.Ward_name ?? "—");
+                if (!groups.has(ward)) groups.set(ward, []);
+                groups.get(ward).push(feature);
+                return groups;
+            }, new Map())];
+            if (!wardGroups.length) return;
+
+            const counts = { LOW: 0, MODERATE: 0, HIGH: 0, EXTREME: 0 };
+            wardGroups.forEach(([ward, features], index) => {
+                const reading = readingForWard(features[0], index);
+                counts[reading.risk] = (counts[reading.risk] || 0) + 1;
+            });
+            const totalWards = wardGroups.length;
+            const overallRisk = Object.keys(counts).sort((first, second) => counts[second] - counts[first])[0];
+            const highRiskWards = counts.HIGH + counts.EXTREME;
+            const populationAtRisk = 14.4 * highRiskWards / totalWards;
+            const formatRisk = risk => risk.charAt(0) + risk.slice(1).toLowerCase();
+
+            document.querySelector("#summaryOverallRisk").textContent = formatRisk(overallRisk);
+            document.querySelector("#summaryRiskMeta").textContent = `${counts[overallRisk]} of ${totalWards} wards`; 
+            document.querySelector("#summaryExtremeCount").textContent = counts.EXTREME;
+            document.querySelector("#summaryHighCount").textContent = counts.HIGH;
+            document.querySelector("#summaryModerateCount").textContent = counts.MODERATE;
+            document.querySelector("#summaryLowCount").textContent = counts.LOW;
+            document.querySelector("#summaryPopulationRisk").textContent = `${populationAtRisk.toFixed(2)} Lakh`;
+            renderRiskDistribution(counts, totalWards);
+            renderAlertHistory(wardGroups);
+
+            const riskColor = riskColors[overallRisk] || "#1769e8";
+            document.querySelector("#summaryOverallRisk").style.color = riskColor;
+        }
+
+        function renderRiskDistribution(counts, totalWards) {
+            const donut = document.querySelector("#riskDonut");
+            const legend = document.querySelector("#distributionLegend");
+            const totalLabel = document.querySelector("#distributionTotal");
+            if (!donut || !legend) return;
+
+            const colors = { EXTREME: "#EF4444", HIGH: "#F59E0B", MODERATE: "#FACC15", LOW: "#65CF72" };
+            const labels = { EXTREME: "Extreme", HIGH: "High", MODERATE: "Moderate", LOW: "Low" };
+            let start = 0;
+            const stops = Object.keys(colors).map(risk => {
+                const end = start + (counts[risk] / totalWards) * 360;
+                const stop = `${colors[risk]} ${start}deg ${end}deg`;
+                start = end;
+                return stop;
+            });
+            donut.style.background = `conic-gradient(${stops.join(", ")})`;
+            donut.setAttribute("data-total", totalWards);
+            if (totalLabel) totalLabel.textContent = `${totalWards} wards assessed`;
+            legend.innerHTML = Object.keys(colors).map(risk => `<div class="distribution-row"><i style="background:${colors[risk]}"></i><span>${labels[risk]}</span><strong>${counts[risk]}</strong></div>`).join("");
+        }
+
+        function renderAlertHistory(wardGroups) {
+            const list = document.querySelector("#alertHistoryList");
+            const moreButton = document.querySelector("#alertHistoryMore");
+            if (!list || !moreButton) return;
+
+            const severity = { EXTREME: 4, HIGH: 3, MODERATE: 2, LOW: 1 };
+            const alerts = wardGroups.map(([ward, features], index) => ({ ward, reading: readingForWard(features[0], index) }))
+                .filter(alert => alert.reading.risk === "EXTREME" || alert.reading.risk === "HIGH")
+                .sort((first, second) => severity[second.reading.risk] - severity[first.reading.risk] || Number(second.reading.heatIndex || 0) - Number(first.reading.heatIndex || 0));
+
+            if (!alerts.length) {
+                list.innerHTML = '<p class="alert-history-empty">No high or extreme risk alerts.</p>';
+                moreButton.style.display = "none";
+                return;
+            }
+
+            const wasExpanded = list.classList.contains("expanded");
+            moreButton.style.display = alerts.length > 3 ? "block" : "none";
+            moreButton.textContent = wasExpanded ? "See less" : "See more";
+            moreButton.setAttribute("aria-expanded", String(wasExpanded));
+            list.classList.toggle("expanded", wasExpanded);
+            list.innerHTML = alerts.map((alert, index) => {
+                const risk = alert.reading.risk;
+                const age = index === 0 ? "Now" : `${index * 8} min ago`;
+                return `<div class="alert-history-item${index > 2 ? " extra" : ""}" style="--alert-color:${riskColors[risk]}"><span class="alert-severity"></span><div><strong>Ward ${escapeHtml(alert.ward)}: ${risk} risk</strong><p>Heat index ${escapeHtml(alert.reading.heatIndex)} °C · WBGT ${escapeHtml(alert.reading.wbgt)} °C</p></div><span class="alert-history-time">${age}</span></div>`;
+            }).join("");
+        }
+
+        function toggleAlertHistory() {
+            const list = document.querySelector("#alertHistoryList");
+            const button = document.querySelector("#alertHistoryMore");
+            const expanded = list.classList.toggle("expanded");
+            button.setAttribute("aria-expanded", String(expanded));
+            button.textContent = expanded ? "See less" : "See more";
+        }
+
+        document.querySelector("#alertHistoryMore").addEventListener("click", toggleAlertHistory);
+
+        function wardName(feature) {
+            const properties = feature.properties || {};
+            return properties.Ward_name ? `Ward ${properties.Ward_name}` : `Sector ${properties.Sector_nam ?? "—"}`;
+        }
+
+        function wardMetadata(feature) {
+            const source = wardDataForFeature(feature, 0);
+            const description = source.description ?? "No ward description available";
+            return description.length > 50 ? `${description.slice(0, 50)}...` : description;
+        }
+
+        function wardTooltip(feature, index) {
+            const reading = readingForWard(feature, index);
+            const properties = feature.properties || {};
+            const sectorName = properties.Sector_nam ? `Sector ${properties.Sector_nam}` : "Sector —";
+            return `<div class="ward-popup"><h3>${escapeHtml(wardName(feature))}</h3><div class="ward-sector">${escapeHtml(sectorName)}</div><div class="ward-description">${escapeHtml(wardMetadata(feature))}</div><p><strong>Temperature</strong> ${escapeHtml(reading.temperature)} °C</p><p><strong>Humidity</strong> ${escapeHtml(reading.humidity)} %</p><p><strong>Wind speed</strong> ${escapeHtml(reading.windSpeed)} m/s</p><p><strong>Stress category</strong> ${escapeHtml(reading.stressCategory)}</p><p><strong>Risk</strong> <span class="popup-risk" style="color:${riskColors[reading.risk]}">${escapeHtml(reading.risk)}</span></p></div>`;
+        }
+
+        function setPanelValue(id, value) {
+            const element = document.querySelector(`#${id}`);
+            if (element) element.textContent = value ?? "—";
+        }
+
+        function openWardPanel(feature, index) {
+            const properties = feature.properties || {};
+            const reading = readingForWard(feature, index);
+            const sector = properties.Sector_nam ?? "—";
+            const riskColor = riskColors[reading.risk] || "#EF4444";
+            const score = Math.min(99, Math.max(1, Math.round((Number(reading.heatIndex || 0) / 60) * 100)));
+
+            setPanelValue("panelSector", sector);
+            setPanelValue("panelWard", `${wardName(feature)} • ${wardMetadata(feature)}`);
+            setPanelValue("panelRisk", reading.risk);
+            setPanelValue("panelScore", `${score} / 100`);
+            setPanelValue("panelTemperature", `${reading.temperature ?? "—"} °C`);
+            setPanelValue("panelHumidity", `${reading.humidity ?? "—"} %`);
+            setPanelValue("panelWind", `${reading.windSpeed ?? "—"} m/s`);
+            setPanelValue("panelSolar", `${reading.solarRadiation ?? "—"} W/m²`);
+            setPanelValue("panelHeatIndex", `${reading.heatIndex ?? "—"} °C`);
+            setPanelValue("panelWbgt", `${reading.wbgt ?? "—"} °C`);
+            setPanelValue("panelUtci", `${reading.utci ?? "—"} °C`);
+            setPanelValue("panelMrt", `${reading.mrt ?? "—"} °C`);
+            setPanelValue("panelStress", reading.stressCategory);
+
+            const secondaryDetails = document.querySelector("#wardSecondaryDetails");
+            const seeMoreButton = document.querySelector("#wardSeeMore");
+            secondaryDetails.classList.remove("open");
+            secondaryDetails.setAttribute("aria-hidden", "true");
+            seeMoreButton.textContent = "See more";
+            seeMoreButton.setAttribute("aria-expanded", "false");
+
+            const riskBox = document.querySelector(".ward-risk-box");
+            if (riskBox) { riskBox.style.background = `${riskColor}18`; riskBox.style.color = riskColor; }
+            const reasons = [];
+            if (Number(reading.temperature) >= 37) reasons.push("Very high temperature");
+            if (Number(reading.humidity) >= 65) reasons.push("High humidity");
+            if (Number(reading.windSpeed) <= 2) reasons.push("Low wind speed");
+            if (Number(reading.heatIndex) >= 40) reasons.push("Elevated heat index");
+            reasons.push("Heat-health conditions require monitoring");
+            document.querySelector("#panelReasons").innerHTML = reasons.slice(0, 5).map(reason => `<div class="ward-reason"><span>${escapeHtml(reason)}</span><strong>↑</strong></div>`).join("");
+            document.querySelector("#panelActions").innerHTML = `<div class="ward-action"><strong>Activate cooling support</strong>Open or promote the nearest cooling facility if risk remains high.</div><div class="ward-action"><strong>Issue a heat alert</strong>Warn residents before peak thermal stress.</div><div class="ward-action"><strong>Prioritize vulnerable people</strong>Focus on elderly people, children, and outdoor workers.</div><div class="ward-action"><strong>Increase water availability</strong>Ensure public drinking-water points are supplied.</div>`;
+
+            const panel = document.querySelector("#wardPanel");
+            panel.classList.add("open");
+            panel.setAttribute("aria-hidden", "false");
+            document.querySelector("#wardPanelBackdrop").classList.add("open");
+        }
+
+        function toggleWardDetails() {
+            const secondaryDetails = document.querySelector("#wardSecondaryDetails");
+            const seeMoreButton = document.querySelector("#wardSeeMore");
+            const expanded = secondaryDetails.classList.toggle("open");
+            secondaryDetails.setAttribute("aria-hidden", String(!expanded));
+            seeMoreButton.setAttribute("aria-expanded", String(expanded));
+            seeMoreButton.textContent = expanded ? "See less" : "See more";
+        }
+
+        function closeWardPanel() {
+            document.querySelector("#wardPanel")?.classList.remove("open");
+            document.querySelector("#wardPanel")?.setAttribute("aria-hidden", "true");
+            document.querySelector("#wardPanelBackdrop")?.classList.remove("open");
+        }
+
+        document.querySelector("#wardSeeMore").addEventListener("click", toggleWardDetails);
+
+        function styleWard(feature, index) {
+            const reading = readingForWard(feature, index);
+            return { color: "#ffffff", weight: 1.5, opacity: 1, fillColor: riskColors[reading.risk], fillOpacity: .78, lineJoin: "round" };
+        }
+
+        async function loadMap() {
+            mapInstance = L.map("chandigarhMap", { zoomControl: true, attributionControl: true, preferCanvas: true, zoomSnap: .25, minZoom: 10, maxZoom: 18 });
+            try {
+                const response = await fetch("https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Chandigarh/Chandigarh_Sectors.geojson", { cache: "no-store" });
+                if (!response.ok) throw new Error("Could not load Chandigarh geometry");
+                const data = await response.json();
+                wardFeatures = data.features || [];
+                document.querySelector("#railRegions").textContent = wardFeatures.length;
+                wardLayer = L.geoJSON(data, {
+                    style: (feature) => styleWard(feature, data.features.indexOf(feature)),
+                    onEachFeature: (feature, polygon) => {
+                        const index = data.features.indexOf(feature);
+                        polygon.bindTooltip(wardTooltip(feature, index), { sticky: true, direction: "top", className: "ward-tooltip", opacity: .98 });
+                        polygon.on({
+                            mouseover: event => {
+                                event.target.setStyle({ weight: 3, color: "#172033", fillOpacity: .95 });
+                                event.target.bringToFront();
+                            },
+                            mouseout: event => wardLayer.resetStyle(event.target),
+                            click: () => {
+                                polygon.setStyle({ weight: 3, color: "#172033", fillOpacity: .95 });
+                                openWardPanel(feature, index);
+                            }
+                        });
+                    }
+                }).addTo(mapInstance);
+                const bounds = wardLayer.getBounds();
+                if (bounds.isValid()) mapInstance.fitBounds(bounds.pad(.07));
+                renderSectorCards();
+                updateRiskSummary();
+            } catch (error) {
+                console.error(error);
+                document.querySelector("#chandigarhMap").innerHTML = '<div style="height:100%;display:grid;place-items:center;padding:24px;text-align:center;color:#9aa9c2">Unable to load Chandigarh ward geometry.<br>Please open this dashboard with an internet connection.</div>';
+            }
+        }
+
+        async function getData() {
+            try {
+                const response = await fetch("./weather-report", { method: "POST" });
+                if (!response.ok) throw new Error("Station feed unavailable");
+                const data = await response.json();
+                regions = await Promise.all(data.map(async element => ({ ...element, ...getHI(element.temperature, element.humidity), ...await getWBGT(element.temperature, element.humidity, element.windSpeed, element.solarRadiation) })));
+                stationCount.textContent = `${regions.length} active stations`;
+                document.querySelector("#railFeedStatus").textContent = "Connected";
+                document.querySelector("#railFeedText").textContent = "Live station data is being received";
+                document.querySelector("#railStations").textContent = regions.length;
+                document.querySelector("#railRegions").textContent = wardFeatures.length;
+                if (wardLayer) wardLayer.eachLayer(polygon => { const index = Math.max(0, Number.parseInt(polygon.feature.properties?.Sector_nam, 10) || 0); polygon.setStyle(styleWard(polygon.feature, index)); polygon.setTooltipContent(wardTooltip(polygon.feature, index)); });
+                renderSectorCards();
+                updateRiskSummary();
+                setUpdatedTime();
+            } catch (error) {
+                stationCount.textContent = "Live feed unavailable · demo readings";
+                document.querySelector("#railFeedStatus").textContent = "Demo mode";
+                document.querySelector("#railFeedText").textContent = "Showing fallback ward readings";
+                if (!regions.length) showToast("Showing demo ward readings");
+                console.warn(error);
+            }
+        }
+
+        document.querySelector("#refreshButton").addEventListener("click", event => { event.currentTarget.classList.remove("spinning"); void event.currentTarget.offsetWidth; event.currentTarget.classList.add("spinning"); setUpdatedTime(); getData(); });
+        const menuButton = document.querySelector("#menuButton");
+        const sidebarElement = document.querySelector("#sidebar");
+        function closeMobileMenu() {
+            sidebarElement.classList.remove("open");
+            menuButton.setAttribute("aria-expanded", "false");
+        }
+        menuButton.addEventListener("click", () => {
+            const open = sidebarElement.classList.toggle("open");
+            menuButton.setAttribute("aria-expanded", String(open));
+        });
+        document.querySelector("#closeMenuButton").addEventListener("click", closeMobileMenu);
+        document.querySelector("#sectorSearchForm").addEventListener("submit", event => {
+            event.preventDefault();
+            const query = document.querySelector("#sectorSearchInput").value.trim().toLowerCase();
+            if (!query || !wardLayer || !mapInstance) return;
+            const matchingLayer = wardLayer.getLayers().find(layer => {
+                const properties = layer.feature?.properties || {};
+                const sector = String(properties.Sector_nam ?? "").toLowerCase();
+                const ward = String(properties.Ward_name ?? "").toLowerCase();
+                return sector === query || `sector ${sector}` === query || ward === query || `ward ${ward}` === query;
+            });
+            if (!matchingLayer) {
+                showToast("Sector not found");
+                return;
+            }
+            mapInstance.fitBounds(matchingLayer.getBounds(), { maxZoom: 16, animate: true });
+            matchingLayer.openTooltip();
+        });
+        const loginModalBackdrop = document.querySelector("#loginModalBackdrop");
+        const sidebar = document.querySelector("#sidebar");
+        document.querySelector("#loginButton").addEventListener("click", () => {
+            loginModalBackdrop.classList.add("open");
+            document.querySelector("#administratorId").focus();
+        });
+        document.querySelector("#loginForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            try {
+                const response = await fetch(event.currentTarget.action, {
+                    method: "POST",
+                    body: new URLSearchParams(new FormData(event.currentTarget))
+                });
+                if (!response.ok) throw new Error("Login request failed");
+                const result = (await response.text()).trim();
+                if (result === "verified") {
+                    sidebar.classList.remove("auth-hidden");
+                    loginModalBackdrop.classList.remove("open");
+                    showToast("Login verified");
+                } else {
+                    sidebar.classList.add("auth-hidden");
+                    showToast("Invalid credentials");
+                }
+            } catch (error) {
+                sidebar.classList.add("auth-hidden");
+                showToast("Unable to verify login");
+            }
+        });
+        document.querySelector("#closeLoginModal").addEventListener("click", () => loginModalBackdrop.classList.remove("open"));
+        loginModalBackdrop.addEventListener("click", event => {
+            if (event.target === loginModalBackdrop) loginModalBackdrop.classList.remove("open");
+        });
+        document.addEventListener("keydown", event => {
+            if (event.key !== "Escape") return;
+            loginModalBackdrop.classList.remove("open");
+            closeWardPanel();
+        });
+        async function sendAlert(wardGroupIndex, displayedRisk) {
+            const wardGroups = [...wardFeatures.reduce((groups, feature) => {
+                const ward = String(feature.properties?.Ward_name ?? "—");
+                if (!groups.has(ward)) groups.set(ward, []);
+                groups.get(ward).push(feature);
+                return groups;
+            }, new Map())];
+            const wardGroup = wardGroups[Number(wardGroupIndex)];
+
+            if (!wardGroup) {
+                showToast("Ward details unavailable");
+                return;
+            }
+
+            try {
+                const [ward, features] = wardGroup;
+                const reading = readingForWard(features[0], Number(wardGroupIndex));
+                const risk = displayedRisk || reading.risk;
+                const sectors = features.map(feature => `Sector ${feature.properties?.Sector_nam ?? "—"}`).join(", ");
+                const precautions = risk === "EXTREME"
+                    ? "Avoid outdoor exposure, activate cooling support, hydrate frequently, and seek medical help for symptoms."
+                    : "Limit prolonged outdoor exposure, stay hydrated, use shade or cooling centers, and monitor vulnerable people.";
+                const message = [
+                    `ALERT for Ward: ${ward}`,
+                    `Sectors included: ${sectors}`,
+                    `Temperature: ${reading.temperature ?? "—"} °C`,
+                    `Risk Severity: ${risk}`,
+                    `Precautions: ${precautions}`
+                ].join("\n");
+                const response = await fetch("./api/send-sms", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ to: `Ward: ${ward}`, message })
+                });
+                if (!response.ok) throw new Error("Alert request failed");
+                const payload = await response.body;
+                showToast(payload.message || "Heat alert SMS sent.");
+            } catch (error) {
+                console.error(error);
+                showToast("Unable to send heat alert SMS");
+            }
+        }
+
+        sectorList.addEventListener("click", event => { const alertButton = event.target.closest("[data-alert-ward-index]"); if (alertButton) { event.stopPropagation(); sendAlert(alertButton.dataset.alertWardIndex, alertButton.dataset.alertRisk).catch(console.error); return; } const card = event.target.closest("[data-ward-index]"); if (!card) return; const expanded = card.classList.toggle("expanded"); card.setAttribute("aria-expanded", String(expanded)); });
+        sectorList.addEventListener("keydown", event => { if (event.target.closest("[data-alert-ward-index]")) return; const card = event.target.closest("[data-ward-index]"); if (card && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); const expanded = card.classList.toggle("expanded"); card.setAttribute("aria-expanded", String(expanded)); } });
+        lucide.createIcons();
+        setUpdatedTime();
+        loadMap();
+        getData();
+        setInterval(getData, 3000);
+    </script>
+</body>
+
+</html>

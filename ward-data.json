@@ -1,0 +1,322 @@
+{
+    "city": "Chandigarh",
+    "dataType": "sample",
+    "wards": [
+        {
+            "name": "CHD-WARD-01",
+            "wardNumber": 1,
+            "zone": 1,
+            "sectors": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "11",
+                "Rajindra Park",
+                "Khuda Alisher"
+            ],
+            "temperature": 29.5,
+            "humidity": 35,
+            "windSpeed": 2.1,
+            "solarRadiation": 610,
+            "description": "A relatively established urban ward with a mixture of residential areas and open spaces. Moderate wind flow and vegetation provide some relief from thermal stress, although exposed built-up areas may experience higher afternoon temperatures."
+        },
+        {
+            "name": "CHD-WARD-02",
+            "wardNumber": 2,
+            "zone": 2,
+            "sectors": [
+                "12",
+                "14",
+                "15",
+                "25W"
+            ],
+            "temperature": 30.2,
+            "humidity": 34,
+            "windSpeed": 1.8,
+            "solarRadiation": 590,
+            "description": "A mixed residential and urban region with moderate built-up density. Heat exposure can increase during sunny afternoon periods, particularly in areas with limited shade."
+        },
+        {
+            "name": "CHD-WARD-03",
+            "wardNumber": 3,
+            "zone": 2,
+            "sectors": [
+                "16",
+                "17",
+                "22"
+            ],
+            "temperature": 33.2,
+            "humidity": 40,
+            "windSpeed": 1.6,
+            "solarRadiation": 625,
+            "description": "A predominantly urban region with moderate vegetation and built-up surfaces. Reduced wind movement during hot periods can increase perceived thermal stress."
+        },
+        {
+            "name": "CHD-WARD-04",
+            "wardNumber": 4,
+            "zone": 5,
+            "sectors": [
+                "23",
+                "24",
+                "36"
+            ],
+            "temperature": 33.5,
+            "humidity": 42,
+            "windSpeed": 1.3,
+            "solarRadiation": 650,
+            "description": "A moderately dense urban ward where solar exposure and relatively low wind speeds can contribute to increased heat stress during peak afternoon hours."
+        },
+        {
+            "name": "CHD-WARD-05",
+            "wardNumber": 5,
+            "zone": 5,
+            "sectors": [
+                "25",
+                "25W"
+            ],
+            "temperature": 35.5,
+            "humidity": 50,
+            "windSpeed": 1.2,
+            "solarRadiation": 665,
+            "description": "A mixed-use region with moderate-to-high thermal exposure. Lower wind speeds combined with elevated humidity can make outdoor conditions uncomfortable during prolonged heat events."
+        },
+        {
+            "name": "CHD-WARD-08",
+            "wardNumber": 8,
+            "zone": 5,
+            "sectors": [
+                "37",
+                "38",
+                "38W"
+            ],
+            "temperature": 38.0,
+            "humidity": 65,
+            "windSpeed": 1.5,
+            "solarRadiation": 640,
+            "description": "An urban ward with a combination of residential and open areas. Moderate vegetation provides partial protection, while exposed paved areas can accumulate heat."
+        },
+        {
+            "name": "CHD-WARD-09",
+            "wardNumber": 9,
+            "zone": 5,
+            "sectors": [
+                "39",
+                "40"
+            ],
+            "temperature": 33.0,
+            "humidity": 43,
+            "windSpeed": 1.7,
+            "solarRadiation": 620,
+            "description": "A moderately built-up region with reasonable airflow. Thermal stress is expected to remain moderate under normal conditions but can increase during prolonged hot weather."
+        },
+        {
+            "name": "CHD-WARD-10",
+            "wardNumber": 10,
+            "zone": 5,
+            "sectors": [
+                "41",
+                "42"
+            ],
+            "temperature": 35.5,
+            "humidity": 50,
+            "windSpeed": 1.4,
+            "solarRadiation": 645,
+            "description": "A mixed urban region with moderate solar exposure. Reduced wind movement and high afternoon radiation can increase heat accumulation in built-up locations."
+        },
+        {
+            "name": "CHD-WARD-11",
+            "wardNumber": 11,
+            "zone": 6,
+            "sectors": [
+                "53",
+                "54",
+                "55",
+                "56"
+            ],
+            "temperature": 30.8,
+            "humidity": 42,
+            "windSpeed": 2.0,
+            "solarRadiation": 600,
+            "description": "A comparatively open region with better airflow and moderate vegetation. These characteristics can reduce thermal stress compared with more densely built-up wards."
+        },
+        {
+            "name": "CHD-WARD-12",
+            "wardNumber": 12,
+            "zone": 5,
+            "sectors": [
+                "43",
+                "52",
+                "61"
+            ],
+            "temperature": 33.2,
+            "humidity": 42,
+            "windSpeed": 1.8,
+            "solarRadiation": 615,
+            "description": "A mixed urban region with moderate vegetation and built-up surfaces. Thermal conditions can become uncomfortable during periods of high solar radiation."
+        },
+        {
+            "name": "CHD-WARD-13",
+            "wardNumber": 13,
+            "zone": 6,
+            "sectors": [
+                "49",
+                "50",
+                "51",
+                "63"
+            ],
+            "temperature": 36.0,
+            "humidity": 48,
+            "windSpeed": 1.6,
+            "solarRadiation": 630,
+            "description": "A moderately dense urban ward where heat exposure varies between shaded and highly exposed areas. Reduced wind speeds can increase thermal discomfort."
+        },
+        {
+            "name": "CHD-WARD-14",
+            "wardNumber": 14,
+            "zone": 4,
+            "sectors": [
+                "45"
+            ],
+            "temperature": 30.5,
+            "humidity": 38,
+            "windSpeed": 1.9,
+            "solarRadiation": 605,
+            "description": "A relatively compact urban region with moderate heat exposure. Adequate airflow can provide some mitigation, although direct solar exposure remains important."
+        },
+        {
+            "name": "CHD-WARD-15",
+            "wardNumber": 15,
+            "zone": 4,
+            "sectors": [
+                "34",
+                "35",
+                "44"
+            ],
+            "temperature": 33.5,
+            "humidity": 42,
+            "windSpeed": 1.2,
+            "solarRadiation": 655,
+            "description": "A moderately-to-highly exposed urban region. Combination of elevated temperature, humidity and lower wind speeds can result in increased human thermal stress."
+        },
+        {
+            "name": "CHD-WARD-16",
+            "wardNumber": 16,
+            "zone": 4,
+            "sectors": [
+                "20",
+                "33"
+            ],
+            "temperature": 36.0,
+            "humidity": 50,
+            "windSpeed": 1.4,
+            "solarRadiation": 635,
+            "description": "A mixed urban ward with moderate built-up density. Heat stress may increase during afternoon periods when solar radiation is high and wind movement is limited."
+        },
+        {
+            "name": "CHD-WARD-17",
+            "wardNumber": 17,
+            "zone": 4,
+            "sectors": [
+                "18",
+                "19",
+                "21"
+            ],
+            "temperature": 36.5,
+            "humidity": 48,
+            "windSpeed": 1.3,
+            "solarRadiation": 645,
+            "description": "A predominantly urban region with moderate-to-high heat exposure. Prolonged outdoor activity during hot periods may result in elevated thermal stress."
+        },
+        {
+            "name": "CHD-WARD-18",
+            "wardNumber": 18,
+            "zone": 3,
+            "sectors": [
+                "27",
+                "28",
+                "30"
+            ],
+            "temperature": 38.0,
+            "humidity": 65,
+            "windSpeed": 1.0,
+            "solarRadiation": 670,
+            "description": "A densely developed region where reduced wind movement and high solar exposure can contribute to significant heat accumulation. Vulnerable groups may require additional protection during heat events."
+        },
+        {
+            "name": "CHD-WARD-19",
+            "wardNumber": 19,
+            "zone": 1,
+            "sectors": [
+                "26",
+                "26E"
+            ],
+            "temperature": 36.5,
+            "humidity": 52,
+            "windSpeed": 1.1,
+            "solarRadiation": 660,
+            "description": "An urban region with moderate-to-high thermal exposure. Elevated humidity combined with low wind speeds can increase perceived heat stress."
+        },
+        {
+            "name": "CHD-WARD-20",
+            "wardNumber": 20,
+            "zone": 3,
+            "sectors": [
+                "29"
+            ],
+            "temperature": 38.0,
+            "humidity": 60,
+            "windSpeed": 1.0,
+            "solarRadiation": 675,
+            "description": "A relatively exposed urban ward where high solar radiation and limited wind movement can increase thermal stress during hot afternoons."
+        },
+        {
+            "name": "CHD-WARD-21",
+            "wardNumber": 21,
+            "zone": 4,
+            "sectors": [
+                "32",
+                "46"
+            ],
+            "temperature": 34.0,
+            "humidity": 45,
+            "windSpeed": 1.5,
+            "solarRadiation": 625,
+            "description": "A mixed urban region with moderate thermal exposure. Heat conditions can vary considerably depending on local shade, vegetation and built-up surfaces."
+        },
+        {
+            "name": "CHD-WARD-22",
+            "wardNumber": 22,
+            "zone": 4,
+            "sectors": [
+                "31",
+                "47",
+                "48"
+            ],
+            "temperature": 30.0,
+            "humidity": 40,
+            "windSpeed": 2.0,
+            "solarRadiation": 600,
+            "description": "A region with relatively better airflow and moderate thermal exposure. Outdoor conditions are generally less stressful than highly built-up areas under the same weather conditions."
+        },
+        {
+            "name": "CHD-WARD-25",
+            "wardNumber": 25,
+            "zone": null,
+            "sectors": [
+                "Manimajra"
+            ],
+            "temperature": 38.5,
+            "humidity": 65,
+            "windSpeed": 0.9,
+            "solarRadiation": 680,
+            "description": "A highly urbanized region with relatively high thermal exposure. Elevated humidity, low wind speed and strong solar radiation can combine to produce significant human thermal stress during heat events."
+        }
+    ]
+}
